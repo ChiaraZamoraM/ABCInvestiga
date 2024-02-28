@@ -1,0 +1,107 @@
+---
+title: "Taller ABC Invesitgación"
+subtitle: "Politai"
+author: "Chiara Zamora y Alexander Benites"
+date: "Febrero 2024"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+### Apertura de datos
+
+Para estas sesiones, vamos a trabajar con la librería **rio**
+
+```{r}
+library(rio)
+data = import("votacion-distrito-resultados.csv")
+```
+
+
+### Visualización general de los datos
+
+```{r}
+head(data)
+tail(data)
+```
+
+```{r}
+nrow(data)
+ncol(data)
+dim(data)
+```
+
+```{r}
+str(data)
+```
+
+```{r}
+data[1,] #Queremos la primera fila
+```
+
+```{r}
+data[,1] #Queremos la primera columna
+```
+
+```{r}
+data[3,1]
+```
+
+
+### Herramientas básicas de manipulación
+
+```{r}
+data = data[,c(1:3,5,6,7)] #Nos quedamos con algunas columnas
+```
+
+```{r}
+library(reshape2)
+data=reshape(data, direction="wide",
+             idvar=c("departamento", "provincia","distrito"),
+             timevar="AGRUPACION") #Queremos reestructurar los datos
+```
+
+```{r}
+colnames(data) = c("DEPA","PROV","DIST","VOT_PL","PORC_PL","VOT_FP","PORC_FP") #Cambiar nombres de columnas
+```
+
+La base de datos se encuentra a nivel de distritos. Si quisiéramos agregar la información, ¿qué podríamos hacer?
+
+Nos solicitan el porcentaje de votos por FP a nivel provincial y distrital.
+
+```{r}
+data$total = data$VOT_FP + data$VOT_PL
+```
+
+```{r}
+library(dplyr)
+prov = data %>% group_by(DEPA,PROV) %>% 
+  summarise(FP_VOTOS = sum(VOT_FP, na.rm = T),
+            TOTAL_VOTOS = sum(total, na.rm = T)) #Agregamos información a nivel provincia
+```
+
+```{r}
+prov$PORC = prov$FP_VOTOS/prov$TOTAL_VOTOS*100 #Sacamos frecuencia porcentual
+prov$PORC = round(prov$PORC, 2) #Redondeamos a dos dígitos
+```
+
+Lo mismo para departamento:
+
+```{r}
+library(dplyr)
+depa = data %>% group_by(DEPA) %>% 
+  summarise(FP_VOTOS = sum(VOT_FP, na.rm = T),
+            TOTAL_VOTOS = sum(total, na.rm = T)) #Agregamos información a nivel provincia
+```
+
+```{r}
+depa$PORC = depa$FP_VOTOS/depa$TOTAL_VOTOS*100 #Sacamos frecuencia porcentual
+depa$PORC = round(depa$PORC, 2) #Redondeamos a dos dígitos
+```
+
+```{r}
+hist(data$PORC_FP)
+hist(prov$PORC)
+hist(depa$PORC)
+```
+

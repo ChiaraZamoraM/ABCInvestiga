@@ -1,0 +1,325 @@
+---
+title: "Taller ABC Invesitgación - OLS"
+subtitle: "Politai"
+author: "Chiara Zamora y Alexander Benites"
+date: "Febrero 2024"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+library(rio)
+library(reshape2)
+library(stringr)
+library(ggthemes)
+library(dplyr)
+```
+
+### 1. Limpieza y tratamiento de datos:
+
+#### 1.1. Limpieza y tratamiento de la base de resultados electorales (variable dependiente)
+
+Apertura:
+
+```{r}
+segunda_vuelta = import("votacion-distrito-resultados.csv")
+ubigeos = import("votacion-distrito-resumen.csv") #Para incluir UBIGEO RENIEC
+equivalencias = import("Equivalencias.xlsx") #Para incluir UBIGEO INEI
+```
+
+Nos quedamos con algunos vectores de interés de la base de resultados electorales:
+
+-   Departamento
+-   Provincia
+-   Distrito
+-   Agrupación
+-   Total de votos válidos
+-   \% de votos emitidos.
+
+```{r}
+data = segunda_vuelta[,c(1:3,5,6,7)]
+head(data)
+```
+
+La estructura que manejamos no ayuda para hacer el análisis. ¿Por qué?
+
+```{r}
+#De columnas a filas:
+data=reshape(data, direction="wide", idvar=c("departamento", "provincia","distrito"), timevar="AGRUPACION")
+head(data)
+```
+
+Cambiamos los nombres:
+
+```{r}
+colnames(data) = c("DEPA","PROV","DIST","VOT_PL","PORC_PL","VOT_FP","PORC_FP")
+```
+
+Otro GRAN problema: no tenemos los ubigeos en la base de datos. Sin eso, manipular o agregar información va a ser muy complicado. Vamos a tener que improvisar.
+
+```{r}
+#Consiguiendo identificación por ubigeos:
+data$id = paste0(data$DEPA,data$PROV)
+data$id= paste0(data$id,data$DIST)
+
+ubigeos$id = paste0(ubigeos$departamento,ubigeos$provincia)
+ubigeos$id = paste0(ubigeos$id,ubigeos$distrito)
+```
+
+Veamos cómo queda nuestro vector de unificación en cada base de datos:
+
+```{r}
+rownames(data) = NULL #Restauramos el número de cada fila
+data[1696,8] 
+```
+
+Esto se parece más a un vector único
+
+```{r}
+ubigeos[1,33]
+```
+
+Nos quedamos con las variables que nos interesan:
+
+```{r}
+ubigeos = ubigeos[,c(4,33)]
+```
+
+Eliminamos espacios en blanco, ya que tenemos este problema:
+
+```{r}
+ubigeos[1488,2]
+```
+
+```{r}
+data[32,8]
+```
+
+Los espacios en blanco ya son, para R, una diferencia entre ambas celdas y las toma como diferentes. Solucionemos el problema eliminando los espacios en blanco.
+
+```{r}
+ubigeos$id=gsub(" ","",ubigeos$id) #De los ubigeos
+data$id=gsub(" ","",data$id) #De la base de resultados electorales
+```
+
+Verificamos:
+
+```{r}
+ubigeos[1488,2]
+```
+
+```{r}
+data[32,8]
+```
+
+Hemos verificado que todo está sin tildes y en mayúsculas, así que no tendremos ningún trabajo de limpieza sobre ambos puntos.
+
+Ahora si podemos unificar nuestras bases:
+
+```{r}
+data = merge(data,ubigeos, by = "id")
+data = data[,c(2:9)]
+```
+
+Hasta aquí tenemos una base con lo siguiente:
+
+-   Departamento, Provincia y Distrito
+-   Resultados electorales de FP y PL
+-   UBIGEO RENIEC
+
+```{r}
+head(data)
+```
+
+Sin embargo, si queremos agregar otros indicadores sociodemográficos, probablemente el código de identificación de cada unidad territorial sea el UBIGEO INEI. Para eso hemos cargado una tabla de equivalencias:
+
+```{r}
+#Nos quedamos con las columnas de interés: los dos ubigeos
+equivalencias = equivalencias[,c(1,2)]
+```
+
+Ya tenemos nuestro vector de equivalencias. Ahora, veamos nuestro UBIGEO RENIEC en la base de resultados electorales:
+
+```{r}
+data[1,8]
+```
+
+Le falta un cero, hay que agregarlo:
+
+```{r}
+#Falta un 0
+data$CCODI_UBIGEO=str_pad(data$CCODI_UBIGEO, 6, pad = "0")
+```
+
+Listo!
+
+```{r}
+data[1,8]
+```
+
+Unificamos los ubigeos:
+
+```{r}
+data = merge(data,equivalencias, by.x = "CCODI_UBIGEO", by.y = "UBIGEO_RENIEC", all.x = T)
+```
+
+Dejamos los nombres listos:
+
+```{r include=FALSE}
+colnames(data) = c("UBIGEO_RENIEC","DEPA","PROV","DIS","VOTOS_PL","PORC_PL","VOTOS_FP","PORC_FP","UBIGEO_INEI")
+```
+
+Veamos nuestra data:
+
+```{r}
+head(data)
+```
+
+#### 1.2. Limpieza y tratamiento de la base de indicadores sociodemográficos (variables independientes)
+
+```{r}
+ceplan = import("ceplan.xlsx")
+indig = import("indig.xlsx")
+```
+
+Veamos cómo se encuentran nuestros datos en la base del CEPLAN
+
+```{r}
+head(ceplan)
+tail(ceplan)
+```
+
+De esta base, queremos lo siguiente:
+
+-   Tipo (1)
+-   UBIGEO (2)
+-   Población al 2020 (6)
+-   Población con alguna discapacidad al 2020 (9)
+-   Porcentaje de desnutrición (30)
+-   Porcentaje de población en situación de pobreza (40)
+-   Gasto presupuestal per capita en soles (48)
+
+Empecemos a limpiar un poco. Por lo pronto, queremos solo los distritos
+
+```{r}
+ceplan = ceplan %>%
+  select(c(1,2,6,9,30,40,48)) #Nos quedamos con algunas columnas
+
+colnames(ceplan) = c("CAT","UBIGEO","POB_2020","DISC_2020","DESNUTRICION","POBREZA","GASTO") #Cambiamos los nombres de las columnas
+
+ceplan = ceplan %>%
+  filter(CAT == "Distrito") #Filtramos por distritos
+```
+
+Volvemos los vectores numéricos:
+
+```{r}
+ceplan$POB_2020 = as.numeric(ceplan$POB_2020)
+ceplan$DISC_2020 = as.numeric(ceplan$DISC_2020)
+ceplan$POBREZA = as.numeric(ceplan$POBREZA)
+ceplan$DESNUTRICION = as.numeric(ceplan$DESNUTRICION)
+ceplan$GASTO = as.numeric(ceplan$GASTO)
+
+#Porcentaje de personas que cuentan con alguna discapacidad:
+ceplan$DISC_2020_PORC = ceplan$DISC_2020/ceplan$POB_2020
+ceplan$DISC_2020_PORC = ceplan$DISC_2020_PORC*100
+```
+
+Nos quedamos solo con los vectores de interés:
+
+```{r}
+ceplan = ceplan[,c(2,5:8)]
+```
+
+Juntamos la información:
+
+```{r}
+data = merge(data,ceplan, by.x = "UBIGEO_INEI", by.y = "UBIGEO", all.x = T)
+```
+
+Finalmente:
+
+```{r}
+indig$TASA_INDIGENA = indig$TASA_INDIGENA*100
+data = merge(data, indig, by.x = "UBIGEO_INEI", by.y = "UBIGEO", all.x = T)
+```
+
+
+### OLS
+
+Imaginemos que la hipótesis que tenemos es que el porcentaje de personas que se autoidentifican como indígenas explica el voto por Pedro Castillo en la segunda vuelta de las EG 2021. Probemos eso con un modelo.
+
+Primero veamos si las variables se encuentran asociadas:
+
+```{r}
+library(PerformanceAnalytics)
+chart.Correlation(data[,c(7,10,11,12,13,14)], histogram=TRUE, pch=19)
+```
+
+Pongamos esto a prueba en un modelo:
+
+```{r}
+modelo1 = lm(PORC_PL ~ TASA_INDIGENA, data = data)
+summary(modelo1)
+```
+
+Exploremos las predicciones del modelo 1:
+
+```{r}
+library(ggeffects)
+ggpredict(modelo1)
+```
+
+Vamos a controlar esta hipótesis por las otras variables:
+
+```{r}
+modelo2 = lm(PORC_PL ~ TASA_INDIGENA + DESNUTRICION + DISC_2020_PORC + POBREZA + GASTO,
+             data = data)
+summary(modelo2)
+```
+
+Veamos cómo se ve la formula y los coeficientes:
+
+```{r}
+modelo2$coefficients
+```
+
+```{r}
+library(equatiomatic)
+extract_eq(modelo2, use_coefs = T)
+```
+
+Estas serían las nuevas predicciones:
+
+```{r}
+ggpredict(modelo2, terms = "TASA_INDIGENA")
+ggpredict(modelo2, terms = "POBREZA")
+```
+
+Lo podemos ver en un gráfico:
+
+```{r}
+library(ggplot2)
+mydf <- ggpredict(modelo2, terms = "TASA_INDIGENA")
+ggplot(mydf, aes(x, predicted)) + geom_line() + geom_point()
+```
+
+Comparando predictores para saber cuál impacta más en el voto:
+
+```{r}
+library(lm.beta)
+lm.beta(modelo2)
+```
+
+Podemos estandarizar, también, los predictores, pero dejar como tal la variable de respuesta:
+
+```{r}
+modelo3 = lm(PORC_PL ~ scale(TASA_INDIGENA) + scale(DESNUTRICION) + scale(DISC_2020_PORC) + scale(POBREZA) + scale(GASTO),
+             data = data)
+summary(modelo3)
+```
+
+Así:
+
++ El aumento de una desviación estandar en el % de personas que se autoidentifican como indígenas aumenta el % de voto por PL a nivel distrital en 11.28%.

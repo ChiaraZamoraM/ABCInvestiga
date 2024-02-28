@@ -23,9 +23,9 @@ library(dplyr)
 Apertura:
 
 ```{r}
-segunda_vuelta = import("votacion-distrito-resultados.csv")
-ubigeos = import("votacion-distrito-resumen.csv") #Para incluir UBIGEO RENIEC
-equivalencias = import("Equivalencias.xlsx") #Para incluir UBIGEO INEI
+segunda_vuelta = import("https://github.com/ChiaraZamoraM/ABCInvestiga/raw/main/data/votacion-distrito-resultados.csv")
+ubigeos = import("https://github.com/ChiaraZamoraM/ABCInvestiga/raw/main/data/votacion-distrito-resumen.csv") #Para incluir UBIGEO RENIEC
+equivalencias = import("https://github.com/ChiaraZamoraM/ABCInvestiga/raw/main/data/Equivalencias.xlsx") #Para incluir UBIGEO INEI
 ```
 
 Nos quedamos con algunos vectores de interés de la base de resultados electorales:
@@ -179,8 +179,8 @@ head(data)
 #### 1.2. Limpieza y tratamiento de la base de indicadores sociodemográficos (variables independientes)
 
 ```{r}
-ceplan = import("ceplan.xlsx")
-indig = import("indig.xlsx")
+ceplan = import("https://github.com/ChiaraZamoraM/ABCInvestiga/raw/main/data/ceplan.xlsx")
+indig = import("https://github.com/ChiaraZamoraM/ABCInvestiga/raw/main/data/indig.xlsx")
 ```
 
 Veamos cómo se encuentran nuestros datos en la base del CEPLAN

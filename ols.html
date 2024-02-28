@@ -382,9 +382,9 @@ library(dplyr)</code></pre>
 <h4>1.1. Limpieza y tratamiento de la base de resultados electorales
 (variable dependiente)</h4>
 <p>Apertura:</p>
-<pre class="r"><code>segunda_vuelta = import(&quot;votacion-distrito-resultados.csv&quot;)
-ubigeos = import(&quot;votacion-distrito-resumen.csv&quot;) #Para incluir UBIGEO RENIEC
-equivalencias = import(&quot;Equivalencias.xlsx&quot;) #Para incluir UBIGEO INEI</code></pre>
+<pre class="r"><code>segunda_vuelta = import(&quot;https://github.com/ChiaraZamoraM/ABCInvestiga/raw/main/data/votacion-distrito-resultados.csv&quot;)
+ubigeos = import(&quot;https://github.com/ChiaraZamoraM/ABCInvestiga/raw/main/data/votacion-distrito-resumen.csv&quot;) #Para incluir UBIGEO RENIEC
+equivalencias = import(&quot;https://github.com/ChiaraZamoraM/ABCInvestiga/raw/main/data/Equivalencias.xlsx&quot;) #Para incluir UBIGEO INEI</code></pre>
 <p>Nos quedamos con algunos vectores de interés de la base de resultados
 electorales:</p>
 <ul>
@@ -537,7 +537,7 @@ data$CCODI_UBIGEO=str_pad(data$CCODI_UBIGEO, 6, pad = &quot;0&quot;)</code></pre
 <div id="limpieza-y-tratamiento-de-la-base-de-indicadores-sociodemográficos-variables-independientes" class="section level4">
 <h4>1.2. Limpieza y tratamiento de la base de indicadores
 sociodemográficos (variables independientes)</h4>
-<pre class="r"><code>ceplan = import(&quot;ceplan.xlsx&quot;)</code></pre>
+<pre class="r"><code>ceplan = import(&quot;https://github.com/ChiaraZamoraM/ABCInvestiga/raw/main/data/ceplan.xlsx&quot;)</code></pre>
 <pre><code>## New names:
 ## • `` -&gt; `...1`
 ## • `` -&gt; `...3`
@@ -586,7 +586,7 @@ sociodemográficos (variables independientes)</h4>
 ## • `` -&gt; `...46`
 ## • `` -&gt; `...47`
 ## • `` -&gt; `...48`</code></pre>
-<pre class="r"><code>indig = import(&quot;indig.xlsx&quot;)</code></pre>
+<pre class="r"><code>indig = import(&quot;https://github.com/ChiaraZamoraM/ABCInvestiga/raw/main/data/indig.xlsx&quot;)</code></pre>
 <p>Veamos cómo se encuentran nuestros datos en la base del CEPLAN</p>
 <pre class="r"><code>head(ceplan)</code></pre>
 <pre><code>##           ...1 Perú: datos para el planeamiento estratégico, distrital.

@@ -3,7 +3,7 @@
 
 # **Introducción**
 
-La regresión logística se utiliza para predecir la clase (o categoría) de individuos basándose en una o varias variables predictoras (x). Se utiliza para modelar un resultado binario, es decir, una variable que solo puede tener dos valores posibles: 0 o 1, sí o no, enfermo o no enfermo.
+La regresión logística se utiliza para predecir la clase (o categoría) de individuos basándose en una o varias variables predictoras (x). Se utiliza para modelar un resultado binario, es decir, una variable que solo puede tener dos valores posibles: 0 o 1, sí o no, cumplió o no cumplió, enfermo o no enfermo, democracia o autoritarismo.
 
 La regresión logística pertenece a una familia llamada Modelo Lineal Generalizado (GLM), desarrollada para extender el modelo de regresión lineal a otras situaciones. Otros sinónimos son regresión logística binaria, regresión logística binomial y modelo logit.
 
@@ -13,7 +13,8 @@ En esta sesión, aprenderemos cómo:
 
 * Definir la ecuación de regresión logística y términos clave como logaritmo de probabilidades y logit.
 * Realizar regresión logística en R e interpretar los resultados.
-* Realizar predicciones en nuevos datos de prueba y evaluar la precisión del modelo.
+
+* ¿Qué puedo hacer con un modelo de regresión logística que no veremos hoy? :( Realizar predicciones en nuevos datos de prueba y evaluar la precisión del modelo.
 
 ---
 
@@ -31,9 +32,9 @@ Cuando se tienen múltiples variables predictoras, la función logística se ve 
 
 b0 y b1 son los coeficientes de regresión beta. Un valor positivo de b1 indica que el aumento de x se asociará con un aumento en p. Por el contrario, un valor negativo de b1 indica que el aumento de x se asociará con una disminución en p.
 
-La cantidad log[p/(1-p)] se llama el logaritmo de las "odds," también conocido como logaritmo de las "odds" o logit.
+La cantidad log[p/(1-p)] se llama el logaritmo de las "odds," también conocido como log-odds o logit.
 
-Las "odds" reflejan la probabilidad de que ocurra un evento. Se pueden ver como la razón de "éxitos" frente a "no-éxitos". Técnicamente, las "odds" son la probabilidad de un evento dividida por la probabilidad de que el evento no tenga lugar (P. Bruce y Bruce 2017). Por ejemplo, si la probabilidad de ser positivo en diabetes es 0.5, la probabilidad de "no serlo" es 1-0.5 = 0.5, y las "odds" son 1.0.
+Las "odds" reflejan la probabilidad de que ocurra un evento. Se pueden ver como la razón de "éxitos" frente a "no-éxitos". Técnicamente, las "odds" son la probabilidad de un evento dividida por la probabilidad de que el evento no tenga lugar (P. Bruce y Bruce 2017). Por ejemplo, si la probabilidad de ser positivo en __________ es 0.5, la probabilidad de "no serlo" es 1-0.5 = 0.5, y las "odds" son 1.0.
 
 Es importante destacar que la probabilidad se puede calcular a partir de las "odds" como p = Odds/(1 + Odds).
 

@@ -1,0 +1,447 @@
+
+# Modelo de regresión logística 
+
+# **Introducción**
+
+La regresión logística se utiliza para predecir la clase (o categoría) de individuos basándose en una o varias variables predictoras (x). Se utiliza para modelar un resultado binario, es decir, una variable que solo puede tener dos valores posibles: 0 o 1, sí o no, enfermo o no enfermo.
+
+La regresión logística pertenece a una familia llamada Modelo Lineal Generalizado (GLM), desarrollada para extender el modelo de regresión lineal a otras situaciones. Otros sinónimos son regresión logística binaria, regresión logística binomial y modelo logit.
+
+La regresión logística no devuelve directamente la clase de observaciones. Nos permite estimar la probabilidad (p) de pertenencia a la clase. La probabilidad variará entre 0 y 1. Debe decidir el umbral de probabilidad en el que la categoría cambia de una a la otra. De forma predeterminada, esto se establece en p = 0.5, pero en realidad debería basarse en el propósito del análisis.
+
+En esta sesión, aprenderemos cómo:
+
+* Definir la ecuación de regresión logística y términos clave como logaritmo de probabilidades y logit.
+* Realizar regresión logística en R e interpretar los resultados.
+* Realizar predicciones en nuevos datos de prueba y evaluar la precisión del modelo.
+
+---
+
+### **Función logística**
+
+La función estándar de regresión logística, para predecir el resultado de una observación dada una variable predictora (x), es una curva en forma de "S" definida como p = exp(y) / [1 + exp(y)] (James et al. 2014). Esto también se puede expresar de manera más simple como p = 1/[1 + exp(-y)], donde:
+
+* y = b0 + b1x,
+* exp() es la función exponencial y
+* p es la probabilidad de que ocurra un evento (1) dado x. Matemáticamente, esto se expresa como p(evento=1|x) y se abrevia como p(x), por lo que p(x) = 1/[1 + exp(-(b0 + b1x)].
+
+A través de una pequeña manipulación, se puede demostrar que p/(1-p) = exp(b0 + b1x). Tomando el logaritmo de ambos lados, la fórmula se convierte en una combinación lineal de predictores: log[p/(1-p)] = b0 + b1x.
+
+Cuando se tienen múltiples variables predictoras, la función logística se ve así: log[p/(1-p)] = b0 + b1x1 + b2x2 + ... + bn*xn.
+
+b0 y b1 son los coeficientes de regresión beta. Un valor positivo de b1 indica que el aumento de x se asociará con un aumento en p. Por el contrario, un valor negativo de b1 indica que el aumento de x se asociará con una disminución en p.
+
+La cantidad log[p/(1-p)] se llama el logaritmo de las "odds," también conocido como logaritmo de las "odds" o logit.
+
+Las "odds" reflejan la probabilidad de que ocurra un evento. Se pueden ver como la razón de "éxitos" frente a "no-éxitos". Técnicamente, las "odds" son la probabilidad de un evento dividida por la probabilidad de que el evento no tenga lugar (P. Bruce y Bruce 2017). Por ejemplo, si la probabilidad de ser positivo en diabetes es 0.5, la probabilidad de "no serlo" es 1-0.5 = 0.5, y las "odds" son 1.0.
+
+Es importante destacar que la probabilidad se puede calcular a partir de las "odds" como p = Odds/(1 + Odds).
+
+---
+
+# Carga de datos
+
+Para mayor información acerca de la Encuesta mundial de valores: https://www.worldvaluessurvey.org/wvs.jsp
+
+Cargamos los datos del formato .sav
+```{r}
+library("haven")
+library("survey")
+library("jtools")
+library("remotes")
+
+WV7 <- read_spss("https://github.com/ChiaraZamoraM/ABCInvestiga/raw/main/WVS_Wave_7_Peru_Spss_v2.0.sav")
+```
+
+
+# **Variable dependiente**
+
+Cambiamos la monotonía
+```{r}
+library(car)
+
+WV7$VarDep = car::recode(WV7$Q211, "1:2=1; 3=0; -5:-1=NA")
+
+str(WV7$Q211)
+```
+
+# **Variables independiente**
+
+## Compromiso civil
+
+### Organizaciones basadas en interés y/o políticas
+
+#### a. Sindicatos
+
+Cambiamos la monotonía
+```{r}
+WV7$Sindicatos = car::recode(WV7$Q97, "1:2 = 1; 0=0; -5:-1= NA")
+
+summary(WV7$Sindicatos)
+```
+
+#### b. Grupos o partidos políticos
+
+Cambiamos la monotonía
+```{r}
+WV7$PartidosPol = car::recode(WV7$Q98, "1:2 = 1; 0=0; -5:-1= NA")
+summary(WV7$PartidosPol)
+```
+
+#### c. Asociaciones de conservación, medio ambiente y ecología
+
+Cambiamos la monotonía
+```{r}
+WV7$Ambiente = car::recode(WV7$Q99, "1:2 = 1; 0=0; -5:-1= NA")
+summary(WV7$Ambiente)
+```
+
+#### d. Asociaciones profesionales
+
+Cambiamos la monotonía
+```{r}
+WV7$AsProfesional = car::recode(WV7$Q100, "1:2 = 1; 0=0; -5:-1= NA")
+summary(WV7$AsProfesional)
+```
+
+#### d. Organizaciones de consumidores
+
+Cambiamos la monotonía
+```{r}
+WV7$Consumidores = car::recode(WV7$Q102, "1:2 = 1; 0=0; -5:-1= NA")
+summary(WV7$Consumidores)
+```
+
+#### Indicador binario: Organizaciones basadas en interés y/o políticas
+
+Cambiamos la monotonía
+```{r}
+WV7$OrgPol=ifelse(WV7$Sindicatos==1| 
+                    WV7$PartidosPol ==1|
+                    WV7$Ambiente==1|
+                    WV7$AsProfesional==1|
+                    WV7$Consumidores==1,
+                  1,0)
+
+prop.table(table(WV7$OrgPol))*100
+```
+
+### Organizaciones no políticas
+
+#### a. Iglesia, organizaciones o comunidades religiosas
+
+Cambiamos la monotonía
+```{r}
+WV7$Iglesia = car::recode(WV7$Q94, "1:2 = 1; 0=0; -5:-1= NA")
+summary(WV7$Iglesia)
+```
+
+#### b. Organizaciones de deportes o recreación
+
+Cambiamos la monotonía
+```{r}
+WV7$Deportes = car::recode(WV7$Q95, "1:2 = 1; 0=0; -5:-1= NA")
+```
+
+#### c. Asociaciones educativas, artísticas, musicales o culturales
+
+Cambiamos la monotonía
+```{r}
+WV7$Varias = car::recode(WV7$Q96, "1:2 = 1; 0=0; -5:-1= NA")
+```
+
+#### d. Organizaciones de caridad o humanitarias
+
+Cambiamos la monotonía
+```{r}
+WV7$Caridad = car::recode(WV7$Q101, "1:2 = 1; 0=0; -5:-1= NA")
+```
+
+#### e. Organizaciones de bases comunitarias
+
+Cambiamos la monotonía
+```{r}
+WV7$Bases = car::recode(WV7$Q103, "1:2 = 1; 0=0; -5:-1= NA")
+```
+
+#### Indicador binario: Organizaciones no políticas
+
+Cambiamos la monotonía
+```{r}
+WV7$OrgNoPol=ifelse(WV7$Iglesia==1| 
+                    WV7$Deportes ==1|
+                    WV7$Varias==1|
+                    WV7$Caridad==1|
+                    WV7$Bases==1,
+                  1,0)
+
+prop.table(table(WV7$OrgNoPol))*100
+```
+
+### Participación cívica 
+
+Creamos un indicador aditivo.
+```{r}
+WV7$PartCiv= WV7$Sindicatos + WV7$PartidosPol + WV7$Ambiente + WV7$AsProfesional +
+              WV7$Consumidores + WV7$Iglesia + WV7$Deportes + WV7$Varias + 
+              WV7$Caridad + WV7$Bases
+```
+
+## Confianza social
+
+### Confianza interpersonal generalizada
+
+Cambiamos la monotonía
+```{r}
+WV7$ConfIGen = car::recode(WV7$Q57, "2 = 0; 1=1; -5:-1= NA")
+
+prop.table(table(WV7$ConfIGen))*100
+```
+
+## Valores políticos fundamentales 
+
+### Posición en el continuo izquierda- derecha
+
+Renombramos
+```{r}
+WV7$IzqDerecha=WV7$Q240
+```
+
+### Posición en la escala posmaterialista
+
+Renombramos
+```{r}
+WV7$Posmat=WV7$Y001
+```
+
+## Compromiso político
+
+### Interés político
+
+Renombramos
+```{r}
+WV7$Interes=5- WV7$Q199
+```
+
+### Importancia de la política
+
+Renombramos
+```{r}
+WV7$Importancia=5- WV7$Q4
+```
+
+### Indice de CP
+
+Creamos un indicador aditivo
+```{r}
+WV7$ICP=WV7$Interes+WV7$Importancia
+```
+
+```{r}
+WV7$ICP2=WV7$Interes+WV7$Importancia-2
+```
+
+```{r}
+summary(WV7$ICP2)
+```
+
+## Eficacia política externa
+
+### Gobierno democrático
+
+Renombramos
+```{r}
+WV7$Democracia=WV7$Q251
+```
+
+## Nivel socioeconómico
+
+### Ingresos del hogar
+
+Renombramos
+```{r}
+WV7$Ingresos=WV7$Q288
+```
+
+### Nivel educativo del individuo
+
+Renombramos
+```{r}
+WV7$Educacion=WV7$Q275
+```
+
+### Ambito de residencia
+
+Cambiamos la monotonía
+```{r}
+WV7$Rural=car::recode(WV7$H_URBRURAL, "1 = 0; 2=1; -5:-1= NA")
+```
+
+### Variables de control
+
+Cambiamos la monotonía
+```{r}
+WV7$Mujer=car::recode(WV7$Q260, "2 = 1; 1=0; -5:-1= NA")
+```
+
+Renombramos
+```{r}
+WV7$Edad=WV7$Q262
+```
+
+Nos quedamos solo con aquellos casos que tengan peso (ponderación)
+```{r}
+WV7 <- subset( WV7, !is.na(W_WEIGHT) )
+```
+
+Declaramos el diseño de la muestra
+```{r}
+wvs2018 <- svydesign(id=~D_INTERVIEW, weights=~W_WEIGHT, nest=TRUE, 
+                     survey.lonely.psu = "adjust", data=WV7)
+```
+
+```{r}
+logit22 <- (svyglm(VarDep ~ OrgPol + OrgNoPol + ConfIGen + IzqDerecha + Posmat +
+                           ICP2 + Democracia +
+                           Ingresos + Educacion + Rural + Mujer + Edad   , 
+                  family=binomial(link="logit"), design=wvs2018, na.action = na.omit))
+
+summary(logit22)
+```
+
+```{r}
+logit32 <- (svyglm(VarDep ~ PartCiv + ConfIGen + IzqDerecha + Posmat +
+                           ICP2 + Democracia +
+                           Ingresos + Educacion + Rural + Mujer + Edad   , 
+                  family=binomial("logit"), design=wvs2018, na.action = na.omit))
+
+summary(logit32)
+```
+
+A partir de la salida anterior, la tabla de coeficientes muestra las estimaciones de los coeficientes beta y sus niveles de significancia. Las columnas son las siguientes:
+
+* *Estimación*: la intercepción (b0) y las estimaciones de los coeficientes beta asociados a cada variable predictora.
+* *Error estándar*: el error estándar de las estimaciones de los coeficientes. Esto representa la precisión de los coeficientes. Cuanto mayor sea el error estándar, menos confianza tenemos en la estimación.
+* *Valor z*: la estadística z, que es la estimación del coeficiente (columna 2) dividida por el error estándar de la estimación (columna 3).
+* *Pr(>|z|)*: El valor p correspondiente a la estadística z.
+
+Se puede observar que solo ___ de los __ predictores están significativamente asociados con el resultado. Estos incluyen: __________, __________, __________, __________ y __________.
+
+La estimación del coeficiente de la variable __________ es b = __________, lo cual es positivo. Esto significa que un aumento en la __________ se asocia con un aumento en la probabilidad de ser positivo en __________. Sin embargo, el coeficiente para la variable __________ es b = __________, lo cual es negativo. Esto significa que un aumento en la __________ se asociará con una disminución en la probabilidad de ser positivo en __________.
+
+Un concepto importante para entender al interpretar los coeficientes beta logísticos es la razón de las "odds" (odds ratio). La razón de las "odds" mide la asociación entre una variable predictora (x) y la variable de resultado (y). Representa la relación entre las "odds" de que ocurra un evento (evento = 1) dado la presencia del predictor x (x = 1), en comparación con las "odds" del evento ocurriendo en ausencia de ese predictor (x = 0).
+
+Para un predictor dado (digamos x1), el coeficiente beta asociado (b1) en la función de regresión logística corresponde al logaritmo de la razón de las "odds" para ese predictor.
+
+Si la razón de las "odds" es 2, entonces las "odds" de que ocurra el evento (evento = 1) son dos veces mayores cuando el predictor x está presente (x = 1) en comparación con cuando x está ausente (x = 0).
+
+Por ejemplo, el coeficiente de regresión para la __________ es __________. Esto indica que un aumento de una unidad en la concentración de __________ aumentará las "odds" de ser positivo en __________ en exp(__________) __________ veces.
+
+A partir de los resultados de la regresión logística, se puede observar que algunas variables, como __________, __________ y __________, no son estadísticamente significativas. Mantenerlas en el modelo puede contribuir al sobreajuste. Por lo tanto, deberían ser eliminadas. Esto se puede hacer automáticamente utilizando técnicas estadísticas, como la regresión paso a paso y métodos de regresión penalizados. Estos métodos se describen en la siguiente sección. En resumen, consisten en seleccionar un modelo óptimo con un conjunto reducido de variables, sin comprometer la precisión del modelo.
+
+Aquí, dado que tenemos un número pequeño de predictores (n = __________), podemos seleccionar manualmente los más relevantes.
+
+```{r}
+library(stargazer)
+stargazer(logit22 , logit32, type = "text",
+apply.coef=exp, apply.se=exp, t.auto=F, p.auto=F,
+title = "",
+star.cutoffs = c(0.05, 0.01, 0.001),
+out="BinomialTotal.txt")
+```
+
+* Interpretación:
+- 
+-
+-
+-
+-
+
+```{r}
+c(psrsq(logit22, method = c("Cox-Snell")),
+                    psrsq(logit32, method = c("Cox-Snell")))
+```
+
+```{r}
+c(psrsq(logit22, method = c("Nagelkerke")),
+                    psrsq(logit32, method = c("Nagelkerke")))
+```
+
+```{r}
+library(coefplot)
+multiplot(logit22,logit32,names = c("(1) 2018", "(2) 2018"))  + 
+  theme_minimal() + 
+  labs(title="Estimación de coeficientes con error estándar", 
+       x="Estimación", 
+       y="Variable",
+       )
+```
+
+
+```{r}
+library(margins)
+library(devtools)
+library(cli)
+
+devtools::install_github("tzoltak/prediction")
+devtools::install_github("tzoltak/margins")
+
+efectoLogit22= summary(margins(logit22),level = 0.95)
+efectoLogit22$Oleada="WVS 2018"
+efectoLogit22$Modelo="Modelo 1"
+efectoLogit32= summary(margins(logit32),level = 0.95)
+efectoLogit32$Oleada="WVS 2018"
+efectoLogit32$Modelo="Modelo 2"
+```
+
+```{r}
+AIC(logit22,logit32)
+```
+
+```{r}
+efecto=Reduce(function(...) merge(..., all=TRUE), list(efectoLogit3, efectoLogit32))
+```
+
+```{r}
+library(ggplot2)
+base= ggplot(efecto,aes(x=factor(factor,level=c("PartCiv",
+                            "OrgPol",
+                            "OrgNoPol",
+                            "CIG", "CIP", "ConfIGen",
+                            "IzqDerecha","Posmat",
+                            "ICP2",
+                            "Democracia","CIPS","Corrupcion",
+                            "Ingresos","Educacion", "Rural",
+                            "Mujer","Edad")), y=AME, color=Oleada)) +
+  geom_point(position=position_dodge(width=0.75))
+
+base +  geom_errorbar(width=.5,size=0.75,aes(ymin=lower, ymax=upper),positio=position_dodge(width=0.75)) +
+  scale_x_discrete(breaks=c("PartCiv",
+                            "OrgPol",
+                            "OrgNoPol",
+                            "CIG", "CIP", "ConfIGen",
+                            "IzqDerecha","Posmat",
+                            "ICP2",
+                            "Democracia","CIPS","Corrupcion",
+                            "Ingresos","Educacion", "Rural",
+                            "Mujer","Edad"),
+        labels=c("Índice de\nparticipación cívica",
+                 "Participación en\norganizaciones políticas",
+                 "Participación en\norganizaciones no políticas", 
+                 "Índice de confianza\ninterpersonal generalizada", 
+                 "Índice de confianza\ninterpersonal particularizada",
+                 "Confianza interpersonal\ngeneralizada",
+                 "Posición en escala\nizquierda- derecha",
+                 "Posición en\nescala\nposmaterialista",
+                 "Índice de\ncompromiso político",
+                 "Percepción\nde la democracia", "Confianza hacia\ninstituciones políticas",
+                 "Percepción\nde la corrupción", 
+                 "Nivel de\ningresos","Nivel de\neducación","Rural",
+                 "Mujer","Edad"))+
+  geom_hline(yintercept=0, color = "black")+
+  labs(x="Predictor", y="Efecto marginal promedio")+
+  facet_wrap(~Modelo,scales = "free_x")+
+  theme_light()+
+  coord_flip()
+```
+
